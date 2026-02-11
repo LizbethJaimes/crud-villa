@@ -7,10 +7,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
 const db = mysql.createConnection({
-    host: 'bmdhpzroyo6ukm9phekf-mysql.services.clever-cloud.com',
-    user: 'uyttms4dq7lzpy0y', 
-    password: 'Lasvkj1ghzzUdRD8rnBk', 
-    database: 'bmdhpzroyo6ukm9phekf',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
     port: 3306
 });
 
@@ -58,6 +58,7 @@ app.get('/delete/:id', (req, res) => {
         res.redirect('/');
     });
 });
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
