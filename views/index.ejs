@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD - Proyecto Seguridad</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { max-width: 800px; margin-top: 50px; }
+        .card { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card p-4">
+        <h2 class="text-center mb-4">Gestión de Registros</h2>
+
+        <form action="/add" method="POST" class="mb-5">
+            <label class="form-label">Nuevo Registro:</label>
+            <div class="input-group">
+                <input type="text" name="dato" class="form-control" placeholder="Escribe algo aquí..." required>
+                <button class="btn btn-primary" type="submit">Guardar</button>
+            </div>
+        </form>
+
+        <hr>
+
+        <h4 class="mt-4">Registros en la Base de Datos</h4>
+        <table class="table table-hover mt-3">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Dato Guardado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% registros.forEach(reg => { %>
+                    <tr>
+                        <td><%= reg.id %></td>
+                        <td><%= reg.dato %></td> 
+                        <td>
+                            <button class="btn btn-warning btn-sm" 
+                                    onclick="prepararEdicion('<%= reg.id %>', '<%= reg.dato %>')" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editModal">
+                                Editar
+                            </button>
+                            <a href="/delete/<%= reg.id %>" class="btn btn-danger btn-sm" onclick="return confirm('¿Borrar registro?')">Eliminar</a>
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form action="/update" method="POST" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Registro</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="id" id="edit-id">
+        <div class="mb-3">
+          <label class="form-label">Dato a modificar:</label>
+          <input type="text" name="dato" id="edit-dato" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-success">Actualizar Cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function prepararEdicion(id, dato) {
+        document.getElementById('edit-id').value = id;
+        document.getElementById('edit-dato').value = dato;
+    }
+</script>
+
+</body>
+</html>
