@@ -19,28 +19,31 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 10
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-// RUTAS PROTEGIDAS
 app.get('/', (req, res) => {
-    // Solo los últimos 10 (Diseño limpio)
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
-        if (err) return res.status(500).send("Error de base de datos");
+        if (err) {
+            console.error("ERROR DE BD:", err);
+            return res.status(500).send("Error de base de datos");
+        }
         res.render('index', { registros: results });
     });
 });
 
+// Ruta para agregar
 app.post('/add', (req, res) => {
-    const dato = sanitize(req.body.dato);
-    if (!dato) return res.redirect('/');
-    db.query("INSERT INTO registros (dato) VALUES (?)", [dato], () => res.redirect('/'));
+    const datoLimpio = sanitize(req.body.dato);
+    if (!datoLimpio) return res.redirect('/');
+    db.query("INSERT INTO registros (dato) VALUES (?)", [datoLimpio], () => res.redirect('/'));
 });
 
 app.post('/update', (req, res) => {
-    const id = req.body.id;
-    const dato = sanitize(req.body.dato);
-    db.query("UPDATE registros SET dato = ? WHERE id = ?", [dato, id], () => res.redirect('/'));
+    const { id, dato } = req.body;
+    const datoLimpio = sanitize(dato);
+    db.query("UPDATE registros SET dato = ? WHERE id = ?", [datoLimpio, id], () => res.redirect('/'));
 });
 
 app.get('/delete/:id', (req, res) => {
@@ -48,4 +51,4 @@ app.get('/delete/:id', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(` Sistema Villa Protegido en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
