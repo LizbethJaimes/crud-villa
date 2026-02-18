@@ -35,11 +35,11 @@ const db = mysql.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
-    waitForConnections: true,
-    connectionLimit: 2, // Deja espacio libre para evitar ER_USER_LIMIT_REACHED
-    queueLimit: 0
+    waitForConnections: false, // ¡IMPORTANTE! Si no hay conexión, que falle rápido en lugar de esperar
+    connectionLimit: 1,        // Usamos solo UNA para dejar las otras 4 libres por si se desbloquean
+    queueLimit: 0,
+    enableKeepAlive: false     // Obliga a cerrar la conexión apenas termine la consulta
 });
-
 app.get('/', (req, res) => {
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
         if (err) {
