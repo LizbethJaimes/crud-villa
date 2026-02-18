@@ -6,7 +6,6 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. SEGURIDAD NIVEL PRO (CSP corregido para Iconos y Estilos)
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -22,13 +21,11 @@ app.use(helmet({
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
-// 2. PROTECCIÓN CONTRA XSS (Limpia etiquetas maliciosas)
 const sanitize = (str) => {
     if (typeof str !== 'string') return '';
     return str.replace(/<[^>]*>?/gm, '').trim().substring(0, 100);
 };
 
-// 3. POOL OPTIMIZADO PARA RAILWAY (Límite 2 para evitar bloqueo de 5)
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -41,13 +38,23 @@ const db = mysql.createPool({
     enableKeepAlive: false     // Obliga a cerrar la conexión apenas termine la consulta
 });
 app.get('/', (req, res) => {
-    db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
+    // Intentamos la consulta con un tiempo de espera (timeout) corto
+    db.query({
+        sql: 'SELECT * FROM registros ORDER BY id DESC LIMIT 10',
+        timeout: 2000 // Si en 2 segundos no responde por culpa del SLEEP, cancela
+    }, (err, results) => {
         if (err) {
-            console.error("Error BD:", err.message); // Ver detalle en logs de Render
-            return res.render('index', { registros: [], error: "Base de datos ocupada. Reintenta en 10 segundos." });
+            console.error("Servidor ocupado:", err.message);
+            // Enviamos la tabla vacía pero con un mensaje de aviso
+            return res.render('index', { 
+                registros: [], 
+                error: "Conexión lenta detectada. Los datos aparecerán cuando se liberen las conexiones." 
+            });
         }
+        // Si hay éxito, renderizamos normal
         res.render('index', { registros: results, error: null });
     });
+});
 });
 
 app.post('/add', (req, res) => {
