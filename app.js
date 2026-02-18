@@ -7,13 +7,26 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
-// Protección contra inyecciones visuales (XSS)
+const helmet = require('helmet');
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"], 
+      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"], 
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"], 
+      imgSrc: ["'self'", "data:"], 
+      fontSrc: ["'self'", "https://cdn.jsdelivr.net"], 
+      objectSrc: ["'none'"], 
+      upgradeInsecureRequests: [], 
+    },
+  })
+);
+
 const sanitize = (str) => {
     if (typeof str !== 'string') return '';
     return str.replace(/<[^>]*>?/gm, '').trim().substring(0, 100);
 };
 
-// Configuración del Pool ajustada a Railway (Máximo 5 conexiones permitidas)
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -21,13 +34,11 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 3, // Límite seguro para evitar el error ER_USER_LIMIT_REACHED
+    connectionLimit: 3, 
     queueLimit: 0
 });
 
-// GET: Muestra solo los últimos 10 registros
 app.get('/', (req, res) => {
-    // Usamos ORDER BY id DESC para que los nuevos salgan arriba
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
         if (err) {
             console.error("Error de BD:", err);
