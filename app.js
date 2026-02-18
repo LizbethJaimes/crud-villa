@@ -1,32 +1,38 @@
 const express = require('express');
 const mysql = require('mysql2');
 const bodyParser = require('body-parser');
+const helmet = require('helmet');
 require('dotenv').config();
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
-app.set('view engine', 'ejs');
 
-const helmet = require('helmet');
+
 app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      defaultSrc: ["'self'"], 
-      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"], 
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"], 
-      imgSrc: ["'self'", "data:"], 
-      fontSrc: ["'self'", "https://cdn.jsdelivr.net"], 
-      objectSrc: ["'none'"], 
-      upgradeInsecureRequests: [], 
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
     },
   })
 );
 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.set('view engine', 'ejs');
+
+// 2. SANITIZACIÓN (Anti-XSS)
 const sanitize = (str) => {
     if (typeof str !== 'string') return '';
     return str.replace(/<[^>]*>?/gm, '').trim().substring(0, 100);
 };
 
+// 3. POOL DE CONEXIONES (Límite Railway: 5)
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -34,15 +40,16 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 3, 
+    connectionLimit: 3, // Evita el error de "max_user_connections" de tus capturas
     queueLimit: 0
 });
 
+// 4. RUTAS
 app.get('/', (req, res) => {
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
         if (err) {
-            console.error("Error de BD:", err);
-            return res.status(500).send("Error de base de datos");
+            console.error("Error de conexión:", err.message);
+            return res.status(500).send("Servidor saturado. Reintenta en unos segundos.");
         }
         res.render('index', { registros: results });
     });
