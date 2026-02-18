@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. SEGURIDAD: Helmet básico sin CSP para que tus iconos y estilos funcionen (image_ab8e80.png)
+// 1. SEGURIDAD: Helmet sin CSP para permitir Bootstrap e Iconos (Corrige image_ab8e80.png)
 app.use(helmet({ 
     contentSecurityPolicy: false 
 }));
@@ -14,7 +14,7 @@ app.use(helmet({
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
-// 2. CONEXIÓN: Límite de 1 conexión para sobrevivir al límite de 5 de Railway (image_792125.png)
+// 2. CONEXIÓN: Pool limitado a 1 para no saturar Railway (Corrige image_acd8a3.png)
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -22,59 +22,55 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     connectionLimit: 1, 
-    waitForConnections: false
+    waitForConnections: false,
+    queueLimit: 0
 });
 
-// 3. RUTA PRINCIPAL CON MANEJO DE ERRORES (image_792cc1.png)
+// FUNCIÓN DE SANITIZACIÓN PRO (Anti-XSS avanzado)
+const sanatize = (text) => {
+    return String(text || '')
+        .replace(/<[^>]*>?/gm, '') // Elimina etiquetas HTML
+        .replace(/on\w+\s*=/gi, 'no-js=') // Desactiva eventos JS (onclick, onerror, etc)
+        .substring(0, 100) // Evita desbordamiento
+        .trim();
+};
+
+// 3. RUTAS
 app.get('/', (req, res) => {
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
         if (err) {
             console.error("Error de BD:", err.message);
-            // Si la base de datos está saturada, cargamos la página con un aviso (image_792ce1.png)
-            return res.render('index', { registros: [], error: "La base de datos está saturada. Reintenta en breve." });
+            return res.render('index', { registros: [], error: "Base de Datos ocupada. Reintenta." });
         }
         res.render('index', { registros: results, error: null });
     });
 });
 
-// 4. AGREGAR REGISTRO CON SANITIZACIÓN (Anti-XSS)
 app.post('/add', (req, res) => {
-    let datoRaw = String(req.body.dato || '');
-    
-    // SANITIZACIÓN: Eliminamos etiquetas <script> y HTML para evitar alerts maliciosos (image_774462.png)
-    const datoLimpio = datoRaw.replace(/<[^>]*>?/gm, '').trim();
-
+    const datoLimpio = sanatize(req.body.dato);
     if (!datoLimpio) return res.redirect('/');
 
     db.query("INSERT INTO registros (dato) VALUES (?)", [datoLimpio], (err) => {
-        if (err) console.error("Error al insertar:", err.message);
+        if (err) console.error(err.message);
         res.redirect('/');
     });
 });
 
-// 5. ACTUALIZAR CON SANITIZACIÓN
 app.post('/update', (req, res) => {
     const id = parseInt(req.body.id);
-    let datoRaw = String(req.body.dato || '');
-    const datoLimpio = datoRaw.replace(/<[^>]*>?/gm, '').trim();
-
-    if (isNaN(id)) return res.redirect('/');
+    const datoLimpio = sanatize(req.body.dato);
+    if (isNaN(id) || !datoLimpio) return res.redirect('/');
 
     db.query("UPDATE registros SET dato = ? WHERE id = ?", [datoLimpio, id], () => {
         res.redirect('/');
     });
 });
 
-// 6. ELIMINAR REGISTRO (Protección contra inyecciones en URL)
 app.get('/delete/:id', (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.redirect('/');
-
-    db.query("DELETE FROM registros WHERE id = ?", [id], (err) => {
-        if (err) console.error("Error al borrar:", err.message);
-        res.redirect('/');
-    });
+    db.query("DELETE FROM registros WHERE id = ?", [id], () => res.redirect('/'));
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Sistema Villa 100% Protegido en puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor Protegido en puerto ${PORT}`));
