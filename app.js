@@ -6,24 +6,15 @@ require('dotenv').config();
 
 const app = express();
 
-// 1. CONFIGURACIÓN DE SEGURIDAD (Corrige image_798ddf.png)
+// 1. SEGURIDAD BÁSICA (Sin CSP para no bloquear iconos)
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:"],
-        },
-    },
+    contentSecurityPolicy: false, // Desactivamos el filtro que bloquea tus estilos e iconos
 }));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
-// 2. POOL DE CONEXIONES (Corrige image_ab7458.png)
-// Usamos solo 1 conexión para permitir que Railway respire
+// 2. POOL DE CONEXIONES (Ajustado para el límite de Railway)
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -31,16 +22,16 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: false,
-    connectionLimit: 1, 
+    connectionLimit: 1, // Usamos solo 1 para liberar el límite de 5 de Railway
     queueLimit: 0
 });
 
-// 3. RUTAS (Arreglada la sintaxis de image_79a429.png)
+// 3. RUTAS CORREGIDAS
 app.get('/', (req, res) => {
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
         if (err) {
-            console.error("Error BD:", err.message);
-            return res.render('index', { registros: [], error: "Base de datos saturada." });
+            console.error("Error BD:", err.message); // Ver detalle en logs de Render
+            return res.render('index', { registros: [], error: "Base de datos saturada. Espera 10 segundos." });
         }
         res.render('index', { registros: results, error: null });
     });
