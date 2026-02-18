@@ -6,7 +6,8 @@ require('dotenv').config();
 
 const app = express();
 
-
+// CONFIGURACIÓN DE SEGURIDAD (HELMET + CSP)
+// Esta configuración permite que Bootstrap, los iconos y las fuentes funcionen correctamente
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -26,13 +27,14 @@ app.use(
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
-// 2. SANITIZACIÓN (Anti-XSS)
+// SANITIZACIÓN (Anti-XSS)
 const sanitize = (str) => {
     if (typeof str !== 'string') return '';
     return str.replace(/<[^>]*>?/gm, '').trim().substring(0, 100);
 };
 
-// 3. POOL DE CONEXIONES (Límite Railway: 5)
+// POOL DE CONEXIONES (Ajustado para Railway)
+// El límite de 2 ayuda a que no satures el máximo de 5 de Railway tan rápido
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -40,18 +42,19 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
-    connectionLimit: 3, // Evita el error de "max_user_connections" de tus capturas
+    connectionLimit: 2, 
     queueLimit: 0
 });
 
-// 4. RUTAS
+// RUTAS
 app.get('/', (req, res) => {
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
         if (err) {
-            console.error("Error de conexión:", err.message);
-            return res.status(500).send("Servidor saturado. Reintenta en unos segundos.");
+            console.error("Detalle del Error de BD:", err.message);
+            // Si hay error de conexión (como el de tus capturas), enviamos una lista vacía para que la página cargue
+            return res.render('index', { registros: [], error: "Base de datos saturada, reintenta en un momento." });
         }
-        res.render('index', { registros: results });
+        res.render('index', { registros: results, error: null });
     });
 });
 
