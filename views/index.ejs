@@ -3,98 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VILLA - Cloud Logs</title>
+    <title>Registros Villa</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { 
-            background-color: #050505; 
-            color: #e0e0e0; 
-            font-family: 'Inter', system-ui, sans-serif;
-            padding-top: 50px;
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+
+        .card-original {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 400px; 
+            margin-bottom: 30px;
         }
 
-        /* DISEÑO DE TABLA TOTALMENTE DIFERENTE */
-        .log-container {
-            background: #111;
-            border: 1px solid #222;
-            border-radius: 20px;
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+        .table { margin-bottom: 0; }
+        .table thead { background-color: #1e3a8a; color: white; }
+        .table th { padding: 15px; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; border: none; }
+        .table td { padding: 15px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+
+        .status-active {
+            background-color: #dcfce7;
+            color: #166534;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
         }
 
-        .table { margin-bottom: 0; color: #ccc; }
-        .table thead { background: #1a1a1a; }
-        .table th { border: none; padding: 20px; color: #888; font-size: 0.8rem; text-transform: uppercase; }
-        .table td { border-top: 1px solid #222; padding: 20px; }
-
-        /* Seguridad Visual: El texto nunca romperá la tabla */
-        .dato-column { 
-            word-break: break-all;
-            max-width: 400px;
-            color: #fff;
+        .dato-cell { 
+            max-width: 500px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
             font-weight: 500;
         }
-
-        .input-cyber {
-            background: #111;
-            border: 1px solid #333;
-            color: white;
-            border-radius: 12px;
-            padding: 12px 20px;
-        }
-        .input-cyber:focus { background: #151515; border-color: #6200ee; color: white; box-shadow: none; }
-
-        .btn-neon {
-            background: #6200ee;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 12px 30px;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-        .btn-neon:hover { background: #7722ff; box-shadow: 0 0 20px rgba(98,0,238,0.4); }
     </style>
 </head>
 <body>
 
-<div class="container" style="max-width: 800px;">
-    <div class="mb-5 text-center">
-        <h2 class="fw-bold">REPORTE <span style="color: #6200ee;">VILLA</span></h2>
-        <p class="text-muted">Nube Railway • Últimos 10 registros</p>
-    </div>
-
-    <div class="mb-5">
-        <form action="/add" method="POST" class="d-flex gap-3">
-            <input type="text" name="dato" class="form-control input-cyber" placeholder="Nueva entrada de datos..." required maxlength="100">
-            <button class="btn btn-neon" type="submit">Añadir</button>
+<div class="container-fluid">
+    <div class="card-original">
+        <h4 class="text-center mb-4">Registros</h4>
+        <form action="/add" method="POST">
+            <label class="form-label small fw-bold">Nuevo Registro:</label>
+            <div class="input-group">
+                <input type="text" name="dato" class="form-control" placeholder="Escribe un dato..." required maxlength="100">
+                <button class="btn btn-primary" type="submit">Guardar</button>
+            </div>
         </form>
     </div>
 
-    <div class="log-container">
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
+    <div class="table-container">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 10%">ID</th>
+                    <th style="width: 50%">DATO GUARDADO</th>
+                    <th style="width: 20%">ESTADO</th>
+                    <th style="width: 20%" class="text-center">ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% registros.forEach(reg => { %>
                     <tr>
-                        <th style="width: 20%">ID</th>
-                        <th style="width: 60%">CONTENIDO</th>
-                        <th style="width: 20%" class="text-end">OPCIONES</th>
+                        <td class="text-muted small">#<%= reg.id %></td>
+                        <td class="dato-cell"><%= reg.dato %></td>
+                        <td><span class="status-active">Activo</span></td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-3 text-primary">
+                                <i class="bi bi-eye" style="cursor:pointer"></i>
+                                <i class="bi bi-pencil-square text-warning" style="cursor:pointer"></i>
+                                <i class="bi bi-trash3-fill text-danger" style="cursor:pointer" onclick="if(confirm('¿Eliminar?')) window.location.href='/delete/<%= reg.id %>'"></i>
+                            </div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    <% registros.forEach(reg => { %>
-                        <tr>
-                            <td class="text-muted small">#<%= reg.id %></td>
-                            <td class="dato-column"><%= reg.dato %></td>
-                            <td class="text-end">
-                                <a href="/delete/<%= reg.id %>" class="btn btn-sm text-danger opacity-50 text-decoration-none">Eliminar</a>
-                            </td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-center mt-4">
+        <div class="btn-group shadow-sm">
+            <button class="btn btn-primary btn-sm" disabled><</button>
+            <button class="btn btn-outline-primary btn-sm active">1</button>
+            <button class="btn btn-primary btn-sm" disabled>></button>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
