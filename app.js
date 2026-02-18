@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const app = express();
 
-// Configuración de Seguridad corregida para evitar bloqueos (image_798ddf.png)
+// 1. CONFIGURACIÓN DE SEGURIDAD (Corrige image_798ddf.png)
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -22,24 +22,25 @@ app.use(helmet({
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 
-// Pool de una sola conexión para "desbloquear" Railway
+// 2. POOL DE CONEXIONES (Corrige image_ab7458.png)
+// Usamos solo 1 conexión para permitir que Railway respire
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
-    waitForConnections: false, // No esperar si está lleno
-    connectionLimit: 1,        // Solo 1 conexión para no saturar
+    waitForConnections: false,
+    connectionLimit: 1, 
     queueLimit: 0
 });
 
+// 3. RUTAS (Arreglada la sintaxis de image_79a429.png)
 app.get('/', (req, res) => {
     db.query('SELECT * FROM registros ORDER BY id DESC LIMIT 10', (err, results) => {
         if (err) {
-            console.error("Error de BD:", err.message);
-            // Renderizamos la tabla vacía con el error para que la app no muera
-            return res.render('index', { registros: [], error: "Base de datos saturada. Reintenta en 1 minuto." });
+            console.error("Error BD:", err.message);
+            return res.render('index', { registros: [], error: "Base de datos saturada." });
         }
         res.render('index', { registros: results, error: null });
     });
@@ -47,10 +48,10 @@ app.get('/', (req, res) => {
 
 app.post('/add', (req, res) => {
     const { dato } = req.body;
+    if (!dato) return res.redirect('/');
     db.query("INSERT INTO registros (dato) VALUES (?)", [dato], () => res.redirect('/'));
 });
 
-// Asegúrate de que estas rutas existan y estén bien cerradas
 app.post('/update', (req, res) => {
     const { id, dato } = req.body;
     db.query("UPDATE registros SET dato = ? WHERE id = ?", [dato, id], () => res.redirect('/'));
